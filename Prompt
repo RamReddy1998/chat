@@ -1,0 +1,180 @@
+Act as a senior AI architect and full-stack engineer with 10+ years of experience designing scalable AI-powered ed-tech platforms.
+
+Build a production-ready web application named "Qpulse" using:
+
+Frontend:
+- React with TypeScript
+- Modular feature-based architecture
+- Clean analytics dashboard UI
+- Reusable components
+- Role-based protected routes
+
+Backend:
+- Express with TypeScript
+- MVC + Service Layer architecture
+- JWT authentication (username-based only)
+- Role-based authorization (learner/admin)
+
+Database:
+- PostgreSQL (normalized schema)
+- Indexed for performance
+- Optimized for analytics queries
+
+Authentication Requirements:
+- Username + password only (no email)
+- Password hashing using bcrypt
+- JWT access + refresh tokens
+- Persistent history restoration on login
+- Same authentication system for admin
+
+--------------------------------------------------
+NEW REQUIREMENT: JSON QUESTION DUMPS INTEGRATION
+--------------------------------------------------
+
+I will provide a JSON file containing question dumps of multiple certifications.
+
+You must:
+
+1) Create a Dump Import Service:
+   - Parse JSON
+   - Store certifications in database
+   - Store questions mapped to certification
+   - Avoid duplicates
+   - Create indexing for fast filtering
+
+2) Add a New Screen: "Exam Dumps"
+   - Filter by Certification
+   - Filter by Topic
+   - Filter by Difficulty
+   - AI-Recommended Weak Topics Mode
+   - Randomized exam simulation mode
+
+3) Apply AI-Powered Explanation Engine to Dumps:
+   For every dump question:
+   - Step-by-step reasoning
+   - Concept explanation
+   - Why other options are wrong
+   - Exam-oriented memory tips
+
+4) Adaptive AI Behavior:
+   - Track learner attempts per certification
+   - Identify weak certifications
+   - Suggest practice sequence
+   - Calculate Certification-wise Readiness Score
+
+--------------------------------------------------
+CORE LEARNER FEATURES
+--------------------------------------------------
+
+1) Smart Question Practice
+   - Adaptive sequencing
+   - Topic-based filtering
+   - AI-guided difficulty adjustment
+
+2) AI-Powered Explanations
+   - Step-by-step
+   - Conceptual clarity
+   - Exam-focused reasoning
+
+3) Real Exam Mock Tests
+   - Timer
+   - Section division
+   - Negative marking
+   - Auto submission
+   - Performance breakdown
+
+4) Mistake Analysis View
+   - Error clustering
+   - Misconception detection
+   - Reattempt suggestion engine
+
+5) AI Exam Readiness Score
+   Score based on:
+   - Accuracy %
+   - Time efficiency
+   - Topic coverage
+   - Consistency
+   - Dump performance
+   - Mock test trend
+
+--------------------------------------------------
+ADMIN FEATURES
+--------------------------------------------------
+
+1) Create & Manage Batches
+2) Assign learners to batch
+3) Track learner activity:
+   - Time spent
+   - Attempts
+   - Revisions
+   - Dump usage
+   - Engagement score
+4) Certification-wise performance dashboard
+
+--------------------------------------------------
+DATABASE DESIGN EXTENSIONS
+--------------------------------------------------
+
+Add new tables:
+
+Certifications
+- id
+- name
+- description
+
+DumpQuestions
+- id
+- certification_id
+- topic
+- difficulty
+- question
+- options (JSONB)
+- correct_answer
+- explanation
+- created_at
+
+DumpAttempts
+- id
+- user_id
+- question_id
+- selected_answer
+- is_correct
+- time_taken
+- attempted_at
+
+--------------------------------------------------
+AI INTELLIGENCE LAYER
+--------------------------------------------------
+
+Design AI services for:
+
+1) Explanation Generation Service
+2) Readiness Score Engine
+3) Weak Topic Detection
+4) Adaptive Question Sequencer
+5) Certification Performance Predictor
+
+Use modular AI service abstraction so it can switch LLM providers.
+
+--------------------------------------------------
+DELIVERABLES REQUIRED
+--------------------------------------------------
+
+Provide:
+- Folder structure (frontend + backend)
+- PostgreSQL schema
+- API endpoint design
+- JSON import pipeline
+- Authentication flow
+- AI scoring algorithm
+- Scalability architecture
+- Role-based middleware
+- Clean TypeScript examples
+
+Ensure:
+- Enterprise scalability
+- Clean code principles
+- Separation of concerns
+- Maintainability
+- Security best practices
+- Future AI model extensibility
