@@ -1,0 +1,14 @@
+For the image you created can you add the below mentioned use cases and show me final scenario visual mockup
+
+🎓 Learner Features (Core)
+Smart Question Practice – 1)Practice previous exam questions filtered by topic, and difficulty with AI-guided sequencing.
+2)AI-Powered Explanations – Get step-by-step, conceptual, and exam-oriented explanations for every question.
+3)Real Exam Mock Tests – Simulates actual exam conditions with timers, sections, and negative marking.
+4)Mistake Analysis View – Highlights common error patterns and misconceptions specific to the learner.
+5)Exam Readiness Score – Displays an AI-calculated readiness index indicating how prepared the learner is.
+🧑‍🏫 Admin & Educator Features
+1)Learner Activity Tracking – Tracks time spent, attempts, revisions, and engagement across topics. And also admin need to have access to create an batch what he is handling and also which participants are attending this session
+
+Generate the above use cases in my application named as Qpulse , You should use frontend as react with ts, backend express with ts, and db as postgresql. And also I need to use his username whenever he logins I am not going to use any email details, and based on that username I need to retain his history also and whenever he comes after he closes application also he should be able to login , same for admin also.
+
+And I need to track all his data also
