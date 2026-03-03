@@ -1,0 +1,295 @@
+Act as a Senior Full-Stack Architect with 10+ years experience.
+
+You are building a production-grade EdTech web application called **Qpulse**.
+
+Tech Stack:
+- Frontend: React + TypeScript
+- Backend: Node.js + Express + TypeScript
+- Database: PostgreSQL
+- ORM: Prisma (recommended)
+- Authentication: Username + Password only (NO email)
+- State persistence: JWT (access + refresh tokens)
+- AI integration: OpenAI-compatible API
+- Architecture: Scalable, modular, clean code
+
+IMPORTANT RULES:
+- Username is UNIQUE and primary identifier.
+- No email system at all.
+- User history must persist even after logout.
+- Both USER and ADMIN use same login screen with toggle.
+- Maintain role-based access control (RBAC).
+
+---
+
+# 🔐 AUTH SYSTEM DESIGN
+
+1. Single login page with toggle:
+   - Toggle: "Learner" | "Admin"
+   - Fields: username, password
+   - Role validated during login
+   - JWT stored in HttpOnly cookies
+
+2. DB Tables:
+   - users (id, username, password_hash, role, created_at)
+   - sessions (optional for tracking)
+   - certifications
+   - questions
+   - mock_tests
+   - mock_test_attempts
+   - mistake_logs
+   - readiness_scores
+   - batches
+   - batch_participants
+   - learner_activity_logs
+
+Use bcrypt for password hashing.
+
+---
+
+# 🎓 LEARNER FEATURES IMPLEMENTATION
+
+## 1️⃣ Dashboard (After Login)
+Show:
+- List of certifications
+- Total questions count per certification
+- Progress %
+- Last activity
+
+Query:
+- Count questions per certification
+- Count user attempts per certification
+
+---
+
+## 2️⃣ Smart Question Practice Page
+
+Split screen layout:
+
+LEFT SIDE:
+- Question
+- Options (MCQ)
+- Difficulty
+- Topic
+- Submit button
+- Next button
+
+RIGHT SIDE:
+- AI-Powered Explanation
+- Tabs:
+  - Step-by-step
+  - Conceptual
+  - Exam-oriented
+
+AI Logic:
+- Use provided dump questions
+- AI generates structured explanation:
+  - Why correct answer is right
+  - Why others are wrong
+  - Key exam traps
+  - Memory trick
+
+Track:
+- Time spent
+- Correct/Incorrect
+- Topic accuracy
+
+Store in:
+- learner_activity_logs
+- mistake_logs (if incorrect)
+
+---
+
+## 3️⃣ Real Exam Mock Test Screen
+
+Before starting mock:
+Form:
+- Mock Name
+- Number of Questions (min 3, max 10)
+- Timer (minutes)
+- Certification
+
+On Start:
+- Random AI-generated MCQs (min 5 if needed)
+- Apply negative marking logic
+- Timer countdown
+- Auto-submit when time ends
+
+After Submission:
+Show in same page (grid layout):
+- Score
+- % Accuracy
+- Correct / Incorrect
+- Negative marks
+- Topic-wise breakdown
+- Mistake Analysis
+
+Mistake Analysis Engine:
+- Detect repeated wrong topics
+- Detect difficulty weakness
+- Detect time management issues
+
+Save:
+- mock_tests
+- mock_test_attempts
+- mistake_logs
+
+---
+
+## 4️⃣ Exam Readiness Score
+
+Button visible on all learner pages.
+Enabled only if:
+- User completed ≥ 3 mock tests.
+
+Readiness Score Algorithm:
+Based on:
+- Average mock score
+- Trend improvement
+- Topic mastery %
+- Consistency
+- Time efficiency
+
+Formula Example:
+readiness = 
+(0.4 × avg_score) +
+(0.2 × trend_growth) +
+(0.2 × topic_mastery) +
+(0.2 × time_efficiency)
+
+Display:
+- Score out of 100
+- Color indicator:
+  - 0–50: Not Ready
+  - 51–75: Moderate
+  - 76–100: Exam Ready
+
+Store in:
+- readiness_scores table
+
+---
+
+# 🧑‍🏫 ADMIN FEATURES
+
+## Admin Dashboard:
+- Total learners
+- Active learners
+- Avg readiness
+- Total mocks taken
+
+## Batch Management:
+Admin can:
+- Create batch
+- Assign certification
+- Add participants (username-based)
+- Track attendance
+
+Tables:
+- batches
+- batch_participants
+
+## Learner Activity Tracking:
+Per learner:
+- Total time spent
+- Total attempts
+- Revision count
+- Engagement per topic
+
+Use aggregated queries for analytics.
+
+---
+
+# 🗄 DATABASE DESIGN (PostgreSQL)
+
+Design full relational schema with:
+- Proper foreign keys
+- Indexes on:
+  - username
+  - certification_id
+  - user_id
+  - mock_id
+- Soft delete support (optional)
+- Audit fields (created_at, updated_at)
+
+---
+
+# 🧠 AI INTEGRATION DESIGN
+
+Use service layer:
+
+/services/ai.service.ts
+
+Functions:
+- generateExplanation(question)
+- generateMockQuestions(certification, difficulty)
+- generateMistakeInsights(userId)
+- calculateReadiness(userId)
+
+All AI prompts must be structured and deterministic.
+
+---
+
+# 🖥 FRONTEND ARCHITECTURE
+
+React Folder Structure:
+
+/src
+  /components
+  /pages
+  /features
+  /services
+  /hooks
+  /store
+  /layouts
+  /utils
+
+Use:
+- React Router
+- Zustand or Redux Toolkit
+- Axios with interceptors
+- Protected routes
+- Role-based route guards
+
+---
+
+# 🎨 UI REQUIREMENTS
+
+- Use grid layout for:
+  - Mock results
+  - Admin analytics
+- Split-screen layout for practice
+- Progress bars
+- Readiness score circular chart
+- Timer component
+
+Design should look modern, minimal, professional.
+
+---
+
+# 🔒 SECURITY REQUIREMENTS
+
+- Hash passwords with bcrypt
+- Rate limit login
+- Validate role on backend
+- Use middleware:
+  - authenticate
+  - authorize(role)
+==========================
+
+# 🧩 OUTPUT EXPECTATION
+
+Generate:
+
+1. Full folder structure
+2. Database schema (Prisma or SQL)
+3. Backend route structure
+4. Middleware design
+5. Frontend page structure
+6. Mock engine logic
+7. Readiness algorithm code
+8. AI prompt templates
+9. Example API responses
+10. Sample React page implementation (Login + Practice page)
+
+Ensure code is clean, modular, scalable, and production ready.
+
+Do not give pseudo-code. Provide real TypeScript examples.
