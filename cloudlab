@@ -1,0 +1,312 @@
+<system_context>
+  You are an expert full-stack engineer specialising in React, Express.js, PostgreSQL, 
+  and Google Cloud Platform automation. You write clean, well-commented, production-ready 
+  code with robust error handling. You think through architecture before writing code.
+</system_context>
+
+<project_overview>
+  Build a GCP Hands-On Lab Platform — a Qwiklabs-inspired application where users solve 
+  a real cloud infrastructure problem inside a live GCP environment provisioned specifically 
+  for them, then submit feedback, after which the environment is automatically torn down.
+
+  For this demo: implement exactly ONE lab scenario (defined below).
+  My GCP service-account credentials will be supplied via environment variables.
+</project_overview>
+
+<tech_stack>
+  <frontend>React 18 (Vite), TailwindCSS, Framer Motion, React Query</frontend>
+  <backend>Node.js, Express.js, pg (node-postgres), dotenv, nanoid</backend>
+  <database>PostgreSQL</database>
+  <cloud>Google Cloud Platform — Resource Manager, Compute Engine, IAM, Service Usage APIs</cloud>
+</tech_stack>
+
+<lab_definition>
+  <title>Fix the Broken Startup Script on a GCP Compute Engine VM</title>
+  <slug>unable-to-load-startup-script</slug>
+  <difficulty>Intermediate</difficulty>
+  <estimated_time_minutes>45</estimated_time_minutes>
+  <skills>Compute Engine, Cloud Logging, Linux troubleshooting, Instance Metadata</skills>
+  <broken_startup_script>
+    #!/bin/bash
+    # INTENTIONAL BUGS for the lab exercise:
+    source /etc/app/config.env        # File does not exist
+    systemctl start myapp.service     # Service is not installed
+    echo "Done" > /var/log/startup.log
+  </broken_startup_script>
+</lab_definition>
+
+<user_flow>
+  <step id="1" name="Lab Card">
+    Render a landing page with one styled lab card showing title, difficulty, 
+    estimated time, and skill tags. A prominent "Start Lab" button opens a modal.
+  </step>
+
+  <step id="2" name="Email Capture">
+    Modal collects the user's personal Google account email.
+    On submit → POST /api/labs/init
+    Response includes: sessionId, projectId, consoleUrl, expiresAt (90 min from now)
+    Display a "Lab Environment Ready" panel with the console deep-link and countdown timer.
+  </step>
+
+  <step id="3" name="GCP Project + API Setup" location="backend">
+    1. Create GCP project: projectId = "lab-{nanoid(8)}-{unixTimestamp}"
+    2. Grant IAM role roles/editor to the user's email on the project
+    3. Enable APIs: compute.googleapis.com, logging.googleapis.com, 
+       cloudresourcemanager.googleapis.com
+    4. Persist session to PostgreSQL (status = "provisioning")
+  </step>
+
+  <step id="4" name="VM Provisioning" location="backend">
+    Create a Compute Engine VM:
+      - name: "lab-vm-{sessionId}"  
+      - zone: us-central1-a  
+      - machineType: e2-medium  
+      - image: projects/debian-cloud/global/images/family/debian-11  
+      - metadata startup-script: <broken_startup_script defined above>
+    Update session status → "lab_active"
+    Frontend polls GET /api/labs/status/:sessionId and shows VM name, zone, 
+    external IP, SSH deep-link, and a live "Lab Active" pulse indicator.
+  </step>
+
+  <step id="5" name="Feedback Submission">
+    Show a form with:
+      - Textarea: "How did you resolve the issue?"
+      - Star rating (1–5)
+      - Tag input: commands used
+      - Submit button
+    POST /api/labs/feedback → { sessionId, feedbackText, rating, commandsUsed }
+    On success: animated checkmark + confetti.
+    Automatically trigger cleanup pipeline after 200 response.
+  </step>
+
+  <step id="6" name="Admin Dashboard">
+    Route /admin/feedback
+    GET /api/admin/feedback → paginated feedback list
+    Table columns: Email | Project ID | Rating | Feedback | Commands | Submitted At
+    Include: sort, search, CSV export
+  </step>
+
+  <step id="7" name="Cleanup Pipeline" location="backend">
+    After feedback is stored:
+    1. Remove IAM binding: roles/editor from user email
+    2. Delete the VM instance
+    3. Request GCP project deletion
+    4. Update session status → "completed_cleaned"
+    Frontend shows a "Lab Closed" summary card: time taken, rating, project deleted ✓
+  </step>
+</user_flow>
+
+<database_schema>
+  <table name="lab_sessions">
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    project_id TEXT NOT NULL,
+    console_url TEXT,
+    vm_name TEXT,
+    vm_zone TEXT,
+    vm_external_ip TEXT,
+    status TEXT DEFAULT 'provisioning',  -- provisioning | lab_active | completed_cleaned
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+  </table>
+
+  <table name="lab_feedback">
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID REFERENCES lab_sessions(id) ON DELETE CASCADE,
+    feedback_text TEXT NOT NULL,
+    rating INTEGER CHECK (rating BETWEEN 1 AND 5),
+    commands_used TEXT[],
+    submitted_at TIMESTAMPTZ DEFAULT NOW()
+  </table>
+</database_schema>
+
+<api_contract>
+  POST   /api/labs/init                → Validate email, create project+VM, return session
+  GET    /api/labs/status/:sessionId   → Return current session + VM status
+  POST   /api/labs/feedback            → Save feedback, trigger async cleanup
+  GET    /api/admin/feedback           → Paginated feedback list (query: page, limit, search)
+  DELETE /api/labs/cleanup/:sessionId  → Manual cleanup trigger
+</api_contract>
+
+<requirements>
+  <code_quality>
+    - All GCP API calls must use exponential backoff retry (max 3 attempts)
+    - Use async/await; no callback pyramid
+    - Sanitise all user inputs server-side
+    - Use dotenv; provide .env.example; NEVER hardcode secrets
+    - HTTP errors must return { error: string, code: string } JSON
+  </code_quality>
+
+  <frontend_ux>
+    - React Query for all data fetching with loading skeletons on async states
+    - Framer Motion for page transitions and success animations
+    - Fully responsive, mobile-first layout
+    - Countdown timer component with visual urgency at <10 min remaining
+  </frontend_ux>
+
+  <deliverables>
+    1. Full folder/file structure tree
+    2. Every source file — complete, no placeholders, no "// ... rest of code"
+    3. migrations/001_init.sql — full schema
+    4. .env.example with all required keys documented
+    5. README.md — local setup, GCP service account permissions needed, run commands
+  </deliverables>
+</requirements>
+
+<thinking_instructions>
+  Before writing any code:
+  1. Sketch the component tree (frontend) and middleware chain (backend)
+  2. Identify the 3 most complex async coordination points and describe your approach
+  3. List the exact GCP REST API endpoints or Node.js client library methods you will use
+  Then produce the complete implementation.
+</thinking_instructions>
+
+======================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+You are a senior full-stack engineer and cloud architect. Build a complete, production-ready 
+web application that replicates a GCP Qwiklabs-style hands-on lab experience for a single 
+predefined challenge scenario.
+
+═══════════════════════════════════════════════════════════
+TECH STACK
+═══════════════════════════════════════════════════════════
+- Frontend : React 18 (Vite), TailwindCSS, Framer Motion
+- Backend  : Node.js + Express.js (REST API)
+- Database : PostgreSQL (via pg / Sequelize ORM)
+- Cloud    : Google Cloud Platform (Admin SDK / REST APIs)
+             → credentials supplied via env vars (GOOGLE_APPLICATION_CREDENTIALS)
+
+═══════════════════════════════════════════════════════════
+SINGLE PROBLEM STATEMENT (Demo Scope)
+═══════════════════════════════════════════════════════════
+  Title   : "Fix the Broken Startup Script on a GCP Compute Engine VM"
+  Slug    : unable-to-load-startup-script
+  Skills  : Compute Engine, Cloud Logging, OS troubleshooting, metadata server
+  Difficulty: Intermediate
+
+═══════════════════════════════════════════════════════════
+END-TO-END USER FLOW  (7 steps — implement ALL)
+═══════════════════════════════════════════════════════════
+
+STEP 1 — LANDING / LAB CARD
+  • Show a sleek dashboard with ONE lab card:
+    - Title, difficulty badge, estimated time, skills tags
+    - Animated "Start Lab" CTA button
+  • On click → open a modal requesting the user's PERSONAL Google account email
+
+STEP 2 — EMAIL CAPTURE & CONSOLE LINK GENERATION
+  • Validate the email (regex + domain must NOT be a service account)
+  • POST /api/labs/init  →  { email, labSlug }
+  • Backend generates a unique session ID and returns a simulated "Open Console" URL
+    (format: https://console.cloud.google.com/welcome?project=<generated-project-id>)
+  • Display the link in a styled "Lab Environment Ready" panel with a countdown timer (90 min)
+
+STEP 3 — GCP PROJECT CREATION & API ENABLEMENT
+  Backend job (triggered by /api/labs/init):
+  a) Create a new GCP project:
+       projectId = "lab-<nanoid(8)>-<timestamp>"
+       displayName = "Qwik Lab – <userEmail prefix>"
+  b) Add IAM binding: roles/editor → user:<email>
+  c) Enable APIs:
+       - compute.googleapis.com
+       - logging.googleapis.com
+       - cloudresourcemanager.googleapis.com
+  d) Persist session row to PostgreSQL:
+       table: lab_sessions
+       columns: id, email, project_id, console_url, status, created_at
+
+STEP 4 — VM PROVISIONING WITH BROKEN STARTUP SCRIPT
+  Backend (after APIs enabled):
+  a) Create a Compute Engine VM:
+       name        : "lab-vm-<sessionId>"
+       zone        : us-central1-a
+       machineType : e2-medium
+       image       : debian-cloud/debian-11
+  b) Inject a DELIBERATELY BROKEN startup script via instance metadata:
+       #!/bin/bash
+       # BUG: references a non-existent config file
+       source /etc/app/config.env          # file does not exist
+       systemctl start myapp.service       # service not installed
+       echo "Startup complete" > /var/log/startup.log
+  c) Update session status → "lab_active"
+  d) Frontend: show a live status panel with VM name, zone, external IP,
+     SSH-in-browser deep link, and a pulsing "Lab Active" indicator
+
+STEP 5 — FEEDBACK SUBMISSION
+  • When user returns, show a "Submit Solution" form:
+    - Multi-line textarea: "Describe how you resolved the issue"
+    - Star rating (1–5) for difficulty
+    - Optional: commands used (tag-style input)
+    - "Submit Feedback" button
+  • POST /api/labs/feedback  →  { sessionId, feedbackText, rating, commandsUsed }
+  • Backend:
+    - Validate and sanitize input
+    - INSERT into lab_feedback table:
+        columns: id, session_id, feedback_text, rating, commands_used, submitted_at
+    - Return 201 with { message: "Feedback recorded", feedbackId }
+  • Frontend: animated success state + confetti burst
+
+STEP 6 — ADMIN FEEDBACK DASHBOARD
+  • Route: /admin/feedback  (no auth for demo — add a note to secure in production)
+  • GET /api/admin/feedback  → paginated list of all submissions
+  • Render a polished data table:
+    - Columns: Email, Project ID, Rating, Feedback, Commands, Submitted At
+    - Sortable columns, search bar, export-to-CSV button
+
+STEP 7 — CLEANUP PIPELINE  (triggered automatically after feedback submit)
+  Backend cleanup job:
+  a) Revoke IAM binding: remove roles/editor from user:<email>
+  b) Delete the VM instance
+  c) Disable billing (if programmatic billing API is connected, else skip)
+  d) Request project deletion:
+       resourcemanager.projects.delete(projectId)
+  e) Update session status → "completed_cleaned"
+  f) Frontend: show a "Lab Closed" confirmation card with a summary:
+       - Time taken, rating given, project deleted ✓
+
+═══════════════════════════════════════════════════════════
+DATABASE SCHEMA  (PostgreSQL — provide full migration SQL)
+═══════════════════════════════════════════════════════════
+  lab_sessions  (id, email, project_id, console_url, vm_name, vm_zone,
+                 vm_ip, status, started_at, completed_at)
+  lab_feedback  (id, session_id FK, feedback_text, rating INT,
+                 commands_used TEXT[], submitted_at)
+
+═══════════════════════════════════════════════════════════
+API CONTRACT  (Express routes — document all)
+═══════════════════════════════════════════════════════════
+  POST   /api/labs/init              → create session, project, VM
+  GET    /api/labs/status/:sessionId → poll VM + project status
+  POST   /api/labs/feedback          → submit feedback, trigger cleanup
+  GET    /api/admin/feedback         → list all feedback (paginated)
+  DELETE /api/labs/cleanup/:sessionId → manual cleanup trigger
+
+═══════════════════════════════════════════════════════════
+NON-FUNCTIONAL REQUIREMENTS
+═══════════════════════════════════════════════════════════
+  • All GCP calls wrapped in retry logic (exponential backoff, max 3 retries)
+  • dotenv for all secrets; NEVER hardcode credentials
+  • Async/await throughout; proper error handling with HTTP status codes
+  • React Query for data fetching + cache invalidation
+  • Loading skeletons on all async states
+  • Fully responsive (mobile-first)
+  • Provide: folder structure, all source files, .env.example, README with setup steps
+
+Generate the COMPLETE source code for every file. Do not omit or summarize any file.
+Start with the folder structure, then output each file in full.
