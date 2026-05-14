@@ -1,0 +1,4 @@
+A VM is running a simple Node.js or Python app.
+The application is supposed to run on port 8080.
+But users report:
+“The app is not starting. Logs show: No space left on device.”
